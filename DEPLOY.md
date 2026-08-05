@@ -12,9 +12,11 @@ The portal uses a lightweight Supabase identity to save progress, so complete th
 ## Configure user accounts and cross-device progress
 
 1. Create a Supabase project.
-2. Run `supabase.sql` and `restrict-email-domain.sql` in its SQL editor.
+2. Run `supabase.sql` and `restrict-email-domain.sql` in its SQL editor. The scripts are safe to rerun when upgrading an existing portal.
 3. In **Authentication → General Configuration**, enable **Allow anonymous sign-ins**.
 4. In **Authentication → Hooks**, enable the **Before User Created** hook with `public.hook_restrict_signup_to_algorims`.
 5. Copy the Project URL and **publishable** key into `cca-f-config.js`, then push again.
 
-Never put a Supabase secret or service-role key in this repository. Row Level Security in `supabase.sql` ensures signed-in users can only read and write their own attempts.
+Each normalized email maps to one stable identity ID, so entering the same email on another device loads the same progress. This is identification only; the email address is not verified.
+
+Never put a Supabase secret or service-role key in this repository. Row Level Security in `supabase.sql` limits progress access to the email claimed by the current identity token.

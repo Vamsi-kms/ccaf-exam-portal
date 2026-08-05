@@ -409,14 +409,17 @@
     let tests = attempts.length;
     let label = cloud ? 'Enter your Algorims email to save progress on this device' : 'Identity service is unavailable';
     if (cloudUser) {
-      const { data, count, error } = await cloud.from('exam_attempts')
-        .select('answered_questions', { count: 'exact' });
-      if (!error) {
+      const identityEmail = profileEmail(cloudUser).toLowerCase();
+      const result = await cloud.from('exam_attempts')
+        .select('answered_questions', { count: 'exact' })
+        .eq('identity_email', identityEmail);
+      if (!result.error) {
+        const { data, count } = result;
         attempts = data || [];
         tests = count || 0;
         label = 'Progress saved for ' + profileEmail(cloudUser);
       } else {
-        label = 'Cloud sync unavailable; progress is still saved on this device';
+        label = 'Progress identity unavailable; finish the Supabase setup';
       }
     }
     document.getElementById('testsTaken').textContent = tests;
@@ -755,7 +758,11 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
     await refreshProgress();
     if (!cloudUser) return;
-    const { error } = await cloud.from('exam_attempts').insert({ ...attempt, user_id: cloudUser.id });
+    const { error } = await cloud.from('exam_attempts').insert({
+      ...attempt,
+      user_id: cloudUser.id,
+      identity_email: profileEmail(cloudUser).toLowerCase()
+    });
     document.getElementById('syncStatus').textContent = error
       ? 'Cloud sync failed; this attempt is saved on this device'
       : 'Progress saved for ' + profileEmail(cloudUser);
