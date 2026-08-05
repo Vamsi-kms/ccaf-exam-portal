@@ -7,9 +7,9 @@
 3. Under **Build and deployment**, choose **Deploy from a branch**, then `main` and `/(root)`.
 4. Open the URL GitHub shows after deployment.
 
-The portal works immediately and keeps progress in the current browser.
+The portal requires Supabase sign-in, so complete the account setup below before sharing it.
 
-## Enable user accounts and cross-device progress
+## Configure user accounts and cross-device progress
 
 1. Create a Supabase project.
 2. Run `supabase.sql` in its SQL editor.

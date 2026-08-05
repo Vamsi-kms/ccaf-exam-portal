@@ -210,8 +210,8 @@
       </div>
     </section>
     <section class="card auth-card" aria-labelledby="syncHeading">
-      <h2 class="card-heading" id="syncHeading">Sync progress</h2>
-      <div id="syncStatus">Saved on this device</div>
+      <h2 class="card-heading" id="syncHeading">Sign in to continue</h2>
+      <div id="syncStatus">Sign in to start and sync your progress</div>
       <div class="auth-controls" id="authControls">
         <label class="sr-only" for="authEmail">Algorims email address</label>
         <input type="email" id="authEmail" autocomplete="email" placeholder="name@algorims.com" required>
@@ -404,7 +404,7 @@
   async function refreshProgress(){
     let attempts = localAttempts();
     let tests = attempts.length;
-    let label = cloud ? 'Sign in to sync progress across devices' : 'Saved on this device';
+    let label = cloud ? 'Sign in to start and sync progress across devices' : 'Sign-in is unavailable';
     if (cloudUser) {
       const { data, count, error } = await cloud.from('exam_attempts')
         .select('answered_questions', { count: 'exact' });
@@ -528,6 +528,11 @@
   let attemptSaved = false;
 
   document.getElementById('startBtn').onclick = () => {
+    if (!cloudUser) {
+      document.getElementById('syncStatus').textContent = cloud ? 'Sign in with your @algorims.com email to start' : 'Sign-in is unavailable';
+      document.getElementById('authEmail').focus();
+      return;
+    }
     const countVal = document.getElementById('qCount').value;
     const count = countVal === 'all' ? balancedPoolSize() : parseInt(countVal, 10);
     session = buildEqualScenarioSession(count);
