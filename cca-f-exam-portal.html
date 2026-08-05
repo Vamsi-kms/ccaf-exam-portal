@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCA-F Practice Portal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #f7f7f8;
+    --panel: #ffffff;
+    --panel2: #fbfbfc;
+    --line: #e4e4e8;
+    --line-strong: #cfcfd6;
+    --text: #1d1d1f;
+    --muted: #6e6e76;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.08);
+    --correct: #1a7a3c;
+    --correct-bg: rgba(26,122,60,0.08);
+    --wrong: #c0362c;
+    --wrong-bg: rgba(192,54,44,0.07);
+    --flag: #c0362c;
+    --mono: 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Inter', -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  .hidden { display: none !important; }
+
+  /* ---------- Landing ---------- */
+  #landing { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  .eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  h1 { font-size: 28px; font-weight: 700; margin: 0 0 10px; letter-spacing: -0.01em; }
+  #landing > p.lead { color: var(--muted); font-size: 15px; max-width: 560px; margin: 0 0 32px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+  @media (max-width: 640px) { .mode-grid { grid-template-columns: 1fr; } }
+  .mode-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; text-align: left; transition: border-color .15s ease, background .15s ease; }
+  .mode-card:hover { border-color: var(--line-strong); }
+  .mode-card.selected { border: 1.5px solid var(--accent); background: var(--accent-dim); }
+  .mode-card h3 { margin: 0 0 8px; font-size: 16px; }
+  .mode-card p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .field-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+  .field { flex: 1; min-width: 180px; }
+  .field label { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  select, input[type=number], input[type=email] { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 9px 10px; font-size: 14px; font-family: inherit; }
+  .domain-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: #fff; color: var(--muted); padding: 6px 12px; border-radius: 999px; font-size: 12.5px; }
+  .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); font-weight: 600; }
+  .start-btn { width: 100%; padding: 13px; border: none; border-radius: 9px; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; margin-top: 4px; }
+  .start-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .bank-stat { font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .progress-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; flex-wrap: wrap; }
+  .progress-stats { display: flex; gap: 24px; }
+  .progress-stat strong { display: block; font-size: 22px; }
+  .progress-stat span, #syncStatus { color: var(--muted); font-size: 12px; }
+  .auth-controls { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+  .auth-controls input { max-width: 240px; }
+
+  /* ---------- Top bar: timer lives here, full width, top of screen ---------- */
+  #topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; gap: 16px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  #topbar .tb-left { display: flex; align-items: center; gap: 12px; }
+  #topbar .tb-right { display: flex; align-items: center; gap: 12px; }
+  .mode-pill { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px; border-radius: 999px; background: var(--accent-dim); color: var(--accent); font-weight: 700; }
+  #qProgress { font-size: 12.5px; color: var(--muted); }
+  .timer-label { font-size: 13px; color: var(--muted); }
+  #timer { font-family: var(--mono); font-size: 17px; font-weight: 700; }
+  #timer.hidden-timer { filter: blur(6px); }
+  #timer.low { color: var(--wrong); }
+  .timer-switch { display: inline-flex; align-items: center; cursor: pointer; }
+  .timer-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .timer-switch-track { width: 36px; height: 20px; border-radius: 999px; background: var(--line-strong); position: relative; transition: background .15s ease; }
+  .timer-switch-thumb { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s ease; }
+  .timer-switch input:checked + .timer-switch-track { background: var(--accent); }
+  .timer-switch input:checked + .timer-switch-track .timer-switch-thumb { transform: translateX(16px); }
+
+  /* ---------- Exam split layout ---------- */
+  #exam { display: grid; grid-template-columns: 1fr 1.15fr; min-height: calc(100vh - 57px); }
+  @media (max-width: 900px) { #exam { grid-template-columns: 1fr; } }
+  #scenarioPane { background: var(--panel2); border-right: 1px solid var(--line); padding: 32px 32px 60px; overflow-y: auto; }
+  #questionPane { background: var(--panel); padding: 20px 32px 60px; overflow-y: auto; }
+  .pane-label { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 14px; }
+  .scenario-text { font-size: 15px; color: var(--text); white-space: pre-wrap; }
+  .domain-tag { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; margin-bottom: 16px; background: #fff; }
+
+  /* Right-pane header: Mark for Comment + Flag for Review live here */
+  .qpane-header { display: flex; align-items: center; justify-content: flex-end; gap: 20px; padding-bottom: 14px; margin-bottom: 22px; border-bottom: 1px solid var(--line); }
+  .tb-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); background: none; border: none; padding: 4px 2px; border-radius: 6px; }
+  .tb-item:hover { color: var(--text); }
+  .tb-item input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--accent); }
+  .flag-icon { width: 14px; height: 14px; color: var(--muted); }
+  .tb-item.on { color: var(--flag); font-weight: 600; }
+  .tb-item.on .flag-icon { color: var(--flag); }
+
+  .q-number { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; font-weight: 600; }
+  .q-text { font-size: 16px; font-weight: 600; margin: 0 0 22px; }
+  .options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+  .option { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; border-radius: 9px; border: 1px solid var(--line); background: #fff; font-size: 14.5px; color: var(--text); transition: border-color .15s ease, background .15s ease; }
+  .option:hover { border-color: var(--accent); background: var(--accent-dim); }
+  .option .radio { width: 16px; height: 16px; min-width: 16px; border: 1.5px solid var(--line-strong); border-radius: 50%; margin-top: 2px; position: relative; cursor: pointer; }
+  .option.picked { border-color: var(--accent); background: var(--accent-dim); }
+  .option.picked .radio { border-color: var(--accent); }
+  .option.picked .radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+  .option .opt-text { flex: 1; cursor: pointer; }
+  .option.struck .opt-text { text-decoration: line-through; color: var(--muted); }
+  .option .strike-btn { border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 10px; border-radius: 6px; width: 24px; height: 24px; min-width: 24px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .option .strike-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); font-weight: 700; }
+  .option.correct { background: var(--correct-bg); border-color: var(--correct); }
+  .option.correct .radio { border-color: var(--correct); }
+  .option.correct .radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--correct); }
+  .option.incorrect { background: var(--wrong-bg); border-color: var(--wrong); }
+  .option.incorrect .radio { border-color: var(--wrong); }
+  .option.incorrect .radio::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--wrong); }
+  .option-tag { font-size: 10.5px; margin-left: 8px; font-weight: 700; }
+  .option-tag.correct-tag { color: var(--correct); }
+  .option-tag.incorrect-tag { color: var(--wrong); }
+
+  .explain-box { background: var(--panel2); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 16px; font-size: 13.5px; color: var(--muted); margin-bottom: 22px; }
+  .explain-box b { color: var(--text); }
+
+  /* Previous / Next: directly below the options block, right pane */
+  .nav-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+  .nav-btn { background: #fff; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 10px 20px; font-size: 13.5px; }
+  .nav-btn:hover { border-color: var(--line-strong); background: var(--panel2); }
+  .nav-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .nav-btn.primary { background: var(--accent); color: #fff; border: none; font-weight: 700; }
+  .nav-btn.primary:hover { opacity: .9; background: var(--accent); }
+
+  #navGrid { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .navdot { width: 27px; height: 27px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 11px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .navdot.current { border: 1.5px solid var(--accent); color: var(--accent); font-weight: 700; }
+  .navdot.answered { background: var(--accent-dim); color: var(--text); }
+  .navdot.flagged::after { content: ''; position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--flag); }
+
+  /* ---------- Comment popover ---------- */
+  #commentPopover { position: fixed; top: 64px; right: 20px; width: 320px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px; z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+  #commentPopover h4 { margin: 0 0 10px; font-size: 13px; }
+  #commentPopover textarea { width: 100%; min-height: 90px; background: #fff; border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 10px; font-family: inherit; font-size: 13.5px; resize: vertical; }
+  #commentPopover .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+  /* ---------- Confirm submit modal ---------- */
+  #confirmModal, #resultsScreen { display: none; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; z-index: 40; }
+  .modal-box { background: #fff; border-radius: 12px; padding: 28px; max-width: 420px; width: 90%; }
+  .modal-box h3 { margin: 0 0 10px; }
+  .modal-box p { color: var(--muted); font-size: 14px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+
+  /* ---------- Results ---------- */
+  #resultsScreen .wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 100px; }
+  .score-card { display: flex; align-items: center; gap: 28px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 30px; margin-bottom: 28px; flex-wrap: wrap; }
+  .score-ring { width: 110px; height: 110px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; border: 5px solid var(--line); background: #fff; }
+  .score-ring.pass { border-color: var(--correct); color: var(--correct); }
+  .score-ring.fail { border-color: var(--wrong); color: var(--wrong); }
+  .grade-pill { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding: 4px 11px; display: inline-block; margin-bottom: 8px; border-radius: 999px; font-weight: 700; }
+  .grade-pill.pass { color: var(--correct); background: var(--correct-bg); }
+  .grade-pill.fail { color: var(--wrong); background: var(--wrong-bg); }
+  table.domain-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; font-size: 13.5px; }
+  table.domain-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line-strong); }
+  table.domain-table td { padding: 12px; border-bottom: 1px solid var(--line); }
+  .bar-track { background: var(--panel2); height: 8px; width: 100%; overflow: hidden; border-radius: 5px; }
+  .bar-fill { height: 100%; }
+  .bar-fill.good { background: var(--correct); }
+  .bar-fill.weak { background: var(--wrong); }
+  .weak-note { font-size: 10.5px; padding: 3px 8px; background: var(--wrong-bg); color: var(--wrong); border-radius: 6px; font-weight: 700; }
+  .strong-note { font-size: 10.5px; padding: 3px 8px; background: var(--correct-bg); color: var(--correct); border-radius: 6px; font-weight: 700; }
+  .section-title { font-size: 16px; font-weight: 700; margin: 0 0 14px; }
+  .review-item { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 12px; }
+  .review-item .rmeta { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; font-size: 11px; color: var(--muted); flex-wrap: wrap; font-weight: 600; }
+  .review-item .rcomment { margin-top: 8px; font-size: 13px; color: var(--muted); background: var(--panel2); border-radius: 6px; padding: 8px 10px; }
+  .retake-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 12px 22px; font-weight: 700; font-size: 14px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<!-- ===================== LANDING ===================== -->
+<div id="landing">
+  <p class="eyebrow">// Internal Use — Claude Certified Architect Foundations</p>
+  <h1>CCA-F Practice Portal</h1>
+  <p class="lead">Practice or simulate the CCAR-F exam. Practice Mode reveals answers as you go; Exam Mode withholds results until you finish, then breaks your score down by objective area.</p>
+
+  <div class="card progress-card">
+    <div>
+      <div class="progress-stats">
+        <div class="progress-stat"><strong id="testsTaken">0</strong><span>tests completed</span></div>
+        <div class="progress-stat"><strong id="questionsAttempted">0</strong><span>questions answered</span></div>
+      </div>
+      <div id="syncStatus">Saved on this device</div>
+    </div>
+    <div class="auth-controls" id="authControls">
+      <input type="email" id="authEmail" autocomplete="email" placeholder="Email for cross-device sync" required>
+      <button class="nav-btn primary" id="signInBtn" type="button">Email sign-in link</button>
+      <button class="nav-btn hidden" id="signOutBtn" type="button">Sign out</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="mode-grid">
+      <button class="mode-card selected" id="pickPractice" type="button">
+        <h3>Practice Mode</h3>
+        <p>See the correct answer and explanation immediately after each question. No timer pressure.</p>
+      </button>
+      <button class="mode-card" id="pickExam" type="button">
+        <h3>Exam Mode</h3>
+        <p>Pearson VUE-style layout with timer, flagging, comments, and strikethrough. Results and weak-area analysis appear only after you finish.</p>
+      </button>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Question count</label>
+        <select id="qCount">
+          <option value="20">20 questions</option>
+          <option value="40" selected>40 questions</option>
+          <option value="60">60 questions (4 scenarios × 15)</option>
+          <option value="90">90 questions</option>
+          <option value="all">All balanced questions</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Time limit (exam mode)</label>
+        <select id="qTime">
+          <option value="30">30 minutes</option>
+          <option value="60" selected>60 minutes</option>
+          <option value="90">90 minutes</option>
+          <option value="0">No limit</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Domain distribution</label>
+      <select disabled>
+        <option>Equal across Scenarios 1–4 (sequential)</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:20px">
+      <label>Objective areas to include</label>
+      <div class="domain-chips" id="domainChips"></div>
+    </div>
+
+    <button class="start-btn" id="startBtn">Start Practice Session</button>
+    <div class="bank-stat" id="bankStat"></div>
+  </div>
+</div>
+
+<!-- ===================== TOP BAR (Time Remaining lives here) + EXAM ===================== -->
+<div id="session" class="hidden">
+  <div id="topbar">
+    <div class="tb-left">
+      <span class="mode-pill" id="modePill">Practice</span>
+      <span id="qProgress"></span>
+    </div>
+    <div class="tb-right">
+      <span class="timer-label">Time Remaining:</span>
+      <span id="timer">--:--</span>
+      <label class="timer-switch" title="Show/hide timer">
+        <input type="checkbox" id="timerToggle" checked>
+        <span class="timer-switch-track"><span class="timer-switch-thumb"></span></span>
+      </label>
+    </div>
+  </div>
+
+  <div id="exam">
+    <section id="scenarioPane">
+      <div class="pane-label">Scenario</div>
+      <div class="domain-tag" id="domainTag"></div>
+      <div class="scenario-text" id="scenarioText"></div>
+    </section>
+    <section id="questionPane">
+      <div class="qpane-header">
+        <button class="tb-item" id="commentBtn"><input type="checkbox" id="commentCheck" tabindex="-1" disabled> Mark for Comment</button>
+        <button class="tb-item" id="flagBtn">
+          <svg class="flag-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v18M5 4h11l-2.5 4L16 12H5"/></svg>
+          Flag for Review
+        </button>
+      </div>
+
+      <div class="q-number" id="qNumber"></div>
+      <p class="q-text" id="qText"></p>
+      <div class="options" id="optionsWrap"></div>
+      <div class="explain-box hidden" id="explainBox"></div>
+
+      <div class="nav-row">
+        <button class="nav-btn" id="prevBtn">← Previous</button>
+        <button class="nav-btn primary" id="nextBtn">Next →</button>
+      </div>
+      <div id="navGrid"></div>
+    </section>
+  </div>
+</div>
+
+<!-- ===================== COMMENT POPOVER ===================== -->
+<div id="commentPopover" class="hidden">
+  <h4>Comment on this question</h4>
+  <textarea id="commentText" placeholder="Note for later review..."></textarea>
+  <div class="actions">
+    <button class="nav-btn" id="commentCancel">Cancel</button>
+    <button class="nav-btn primary" id="commentSave">Save</button>
+  </div>
+</div>
+
+<!-- ===================== CONFIRM SUBMIT ===================== -->
+<div id="confirmModal">
+  <div class="modal-backdrop">
+    <div class="modal-box">
+      <h3>Submit and finish?</h3>
+      <p id="confirmText"></p>
+      <div class="modal-actions">
+        <button class="nav-btn" id="confirmCancel">Keep working</button>
+        <button class="nav-btn primary" id="confirmSubmit">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== RESULTS ===================== -->
+<div id="resultsScreen">
+  <div class="wrap">
+    <div class="score-card">
+      <div class="score-ring" id="scoreRing">0%</div>
+      <div>
+        <span class="grade-pill" id="gradePill">PASS</span>
+        <h2 style="margin:0 0 6px" id="scoreHeadline"></h2>
+        <p style="margin:0" id="scoreSummary"></p>
+      </div>
+    </div>
+
+    <h3 class="section-title">Performance by objective area</h3>
+    <table class="domain-table" id="domainTable"></table>
+
+    <h3 class="section-title">Flagged &amp; commented questions</h3>
+    <div id="flaggedList"></div>
+
+    <h3 class="section-title">Full answer review</h3>
+    <div id="reviewList"></div>
+
+    <button class="retake-btn" id="retakeBtn">Start another session</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.0/dist/umd/supabase.min.js"></script>
+<script src="cca-f-config.js"></script>
+<script src="cca-f-portal-data.js"></script>
+<script>
+(function(){
+  const BANK = window.CCAF_QUESTION_BANK || [];
+  const DOMAINS = window.CCAF_DOMAINS || [];
+  const PASS_THRESHOLD = window.CCAF_PASS_THRESHOLD || 0.72;
+  const letters = ['A','B','C','D'];
+  const SCENARIOS = {
+    s1: ['Scenario 1 · Customer Support Resolution Agent', 'High-ambiguity support agent using MCP tools such as get_customer, lookup_order, process_refund, and escalate_to_human. The architectural challenge is balancing first-contact resolution with deterministic safety and clear escalation boundaries.'],
+    s2: ['Scenario 2 · Code Generation with Claude Code', 'Team development workflow using Claude Code for implementation, refactoring, debugging, and documentation. The key decisions revolve around CLAUDE.md hierarchy, slash commands, path-scoped rules, and plan mode judgment.'],
+    s3: ['Scenario 3 · Multi-Agent Research System', 'Coordinator-driven research pipeline with search, analysis, synthesis, and reporting subagents. Reliability depends on task decomposition quality, explicit context passing, provenance, and structured error recovery.'],
+    s4: ['Scenario 4 · Developer Productivity with Claude', 'Developer productivity agent for codebase exploration, repetitive engineering tasks, and MCP-backed tooling. The main tradeoffs are built-in tool selection, MCP resource design, and safe workflow configuration.'],
+    s5: ['Scenario 5 · Claude Code for Continuous Integration', 'CI and pull-request automation with Claude Code for reviews, test generation, and developer feedback. The questions here emphasize non-interactive execution, prompt calibration, false-positive control, and unbiased review architecture.'],
+    s6: ['Scenario 6 · Structured Data Extraction', 'Production-grade document extraction with structured output, schema validation, retry loops, and downstream integration. The focus is on reliable tool_use output, graceful handling of missing data, and validation design.']
+  };
+  const SESSION_SCENARIOS = ['s1','s2','s3','s4'];
+  const STORAGE_KEY = 'ccaf-attempts-v1';
+  const cloudConfig = window.CCAF_SUPABASE || {};
+  const cloud = cloudConfig.url && cloudConfig.publishableKey && window.supabase
+    ? window.supabase.createClient(cloudConfig.url, cloudConfig.publishableKey)
+    : null;
+  let cloudUser = null;
+
+  function localAttempts(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch (_) { return []; }
+  }
+
+  async function refreshProgress(){
+    let attempts = localAttempts();
+    let tests = attempts.length;
+    let label = cloud ? 'Sign in to sync progress across devices' : 'Saved on this device';
+    if (cloudUser) {
+      const { data, count, error } = await cloud.from('exam_attempts')
+        .select('answered_questions', { count: 'exact' });
+      if (!error) {
+        attempts = data || [];
+        tests = count || 0;
+        label = 'Synced for ' + cloudUser.email;
+      } else {
+        label = 'Cloud sync unavailable; progress is still saved on this device';
+      }
+    }
+    document.getElementById('testsTaken').textContent = tests;
+    document.getElementById('questionsAttempted').textContent = attempts.reduce((sum, item) => sum + Number(item.answered_questions || 0), 0);
+    document.getElementById('syncStatus').textContent = label;
+    document.getElementById('authEmail').classList.toggle('hidden', !!cloudUser);
+    document.getElementById('signInBtn').classList.toggle('hidden', !!cloudUser);
+    document.getElementById('signOutBtn').classList.toggle('hidden', !cloudUser);
+  }
+
+  document.getElementById('signInBtn').onclick = async () => {
+    if (!cloud) {
+      document.getElementById('syncStatus').textContent = 'Add Supabase settings in cca-f-config.js to enable accounts';
+      return;
+    }
+    const emailInput = document.getElementById('authEmail');
+    const email = emailInput.value.trim();
+    if (!emailInput.checkValidity() || !email) return emailInput.reportValidity();
+    const { error } = await cloud.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: location.origin + location.pathname }
+    });
+    document.getElementById('syncStatus').textContent = error ? error.message : 'Check your email for the sign-in link';
+  };
+  document.getElementById('signOutBtn').onclick = () => cloud && cloud.auth.signOut();
+
+  refreshProgress();
+  if (cloud) {
+    cloud.auth.getUser().then(({ data }) => { cloudUser = data.user; refreshProgress(); });
+    cloud.auth.onAuthStateChange((_event, session) => {
+      cloudUser = session && session.user;
+      setTimeout(refreshProgress, 0);
+    });
+  }
+
+  // ---------- Landing state ----------
+  let mode = 'practice';
+  let selectedDomains = new Set(DOMAINS);
+
+  const chipsWrap = document.getElementById('domainChips');
+  DOMAINS.forEach(d => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip on';
+    chip.textContent = d;
+    chip.onclick = () => {
+      if (selectedDomains.has(d)) { selectedDomains.delete(d); chip.classList.remove('on'); }
+      else { selectedDomains.add(d); chip.classList.add('on'); }
+      updateBankStat();
+    };
+    chipsWrap.appendChild(chip);
+  });
+
+  function balancedPoolSize(){
+    return Math.min(...SESSION_SCENARIOS.map(scenario =>
+      BANK.filter(q => q.scenario === scenario && selectedDomains.has(q.domain)).length
+    )) * SESSION_SCENARIOS.length;
+  }
+  function updateBankStat(){
+    document.getElementById('bankStat').textContent = balancedPoolSize() + ' balanced questions available across Scenarios 1–4 and ' + selectedDomains.size + ' objective areas.';
+    document.getElementById('startBtn').disabled = balancedPoolSize() === 0;
+  }
+  updateBankStat();
+
+  document.getElementById('pickPractice').onclick = () => {
+    mode = 'practice';
+    document.getElementById('pickPractice').classList.add('selected');
+    document.getElementById('pickExam').classList.remove('selected');
+    document.getElementById('startBtn').textContent = 'Start Practice Session';
+  };
+  document.getElementById('pickExam').onclick = () => {
+    mode = 'exam';
+    document.getElementById('pickExam').classList.add('selected');
+    document.getElementById('pickPractice').classList.remove('selected');
+    document.getElementById('startBtn').textContent = 'Start Exam';
+  };
+
+  function buildEqualScenarioSession(requestedCount){
+    const count = Math.min(requestedCount, balancedPoolSize());
+    const each = Math.floor(count / SESSION_SCENARIOS.length);
+    const remainder = count % SESSION_SCENARIOS.length;
+    return SESSION_SCENARIOS.flatMap((scenario, index) =>
+      BANK.filter(q => q.scenario === scenario && selectedDomains.has(q.domain))
+        .slice(0, each + (index < remainder ? 1 : 0))
+    );
+  }
+
+  // ---------- Session state ----------
+  let session = [];
+  let answers = {};      // qid -> selected index
+  let flags = {};        // qid -> bool
+  let comments = {};     // qid -> text
+  let strikes = {};      // qid -> Set of option indices struck out
+  let current = 0;
+  let timeLeftSec = 0;
+  let timerHandle = null;
+  let timerHidden = false;
+  let startedAt = null;
+  let attemptSaved = false;
+
+  document.getElementById('startBtn').onclick = () => {
+    const countVal = document.getElementById('qCount').value;
+    const count = countVal === 'all' ? balancedPoolSize() : parseInt(countVal, 10);
+    session = buildEqualScenarioSession(count);
+    answers = {}; flags = {}; comments = {}; strikes = {}; current = 0;
+    startedAt = Date.now();
+    attemptSaved = false;
+
+    const mins = parseInt(document.getElementById('qTime').value, 10);
+    timeLeftSec = mins > 0 ? mins * 60 : 0;
+
+    document.getElementById('landing').classList.add('hidden');
+    document.getElementById('session').classList.remove('hidden');
+    document.getElementById('modePill').textContent = mode === 'exam' ? 'Exam Mode' : 'Practice Mode';
+
+    if (timeLeftSec > 0) {
+      document.getElementById('timer').textContent = fmtTime(timeLeftSec);
+      timerHandle = setInterval(tick, 1000);
+    } else {
+      document.getElementById('timer').textContent = '∞';
+    }
+
+    renderQuestion();
+  };
+
+  function fmtTime(sec){
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }
+  function tick(){
+    timeLeftSec--;
+    const t = document.getElementById('timer');
+    if (!timerHidden) t.textContent = fmtTime(Math.max(timeLeftSec,0));
+    if (timeLeftSec <= 60) t.classList.add('low');
+    if (timeLeftSec <= 0) { clearInterval(timerHandle); finishSession(true); }
+  }
+
+  document.getElementById('timerToggle').onchange = (e) => {
+    timerHidden = !e.target.checked;
+    const t = document.getElementById('timer');
+    if (timerHidden) t.classList.add('hidden-timer');
+    else t.classList.remove('hidden-timer');
+  };
+
+  function renderQuestion(){
+    const q = session[current];
+    const scenario = SCENARIOS[q.scenario];
+
+    document.getElementById('domainTag').textContent = scenario[0];
+    document.getElementById('scenarioText').textContent = scenario[1];
+
+    document.getElementById('qNumber').textContent = 'Question ' + (current + 1) + ' of ' + session.length;
+    document.getElementById('qText').textContent = q.prompt;
+    document.getElementById('qProgress').textContent =
+      (Object.keys(answers).length) + '/' + session.length + ' answered';
+
+    if (!strikes[q.id]) strikes[q.id] = new Set();
+
+    const wrap = document.getElementById('optionsWrap');
+    wrap.innerHTML = '';
+    const picked = answers[q.id];
+    const reveal = mode === 'practice' && picked !== undefined;
+
+    q.options.forEach((opt, oi) => {
+      const row = document.createElement('div');
+      row.className = 'option';
+      if (picked === oi && !reveal) row.classList.add('picked');
+      if (strikes[q.id].has(oi)) row.classList.add('struck');
+      if (reveal) {
+        if (oi === q.answer) row.classList.add('correct');
+        else if (oi === picked) row.classList.add('incorrect');
+      }
+
+      const radio = document.createElement('span');
+      radio.className = 'radio';
+      radio.onclick = () => selectOption(oi);
+
+      const label = document.createElement('span');
+      label.className = 'opt-text';
+      label.textContent = letters[oi] + '.  ' + opt;
+      label.onclick = () => selectOption(oi);
+      if (reveal && oi === q.answer) {
+        const tag = document.createElement('span');
+        tag.className = 'option-tag correct-tag';
+        tag.textContent = '✓ correct answer';
+        label.appendChild(tag);
+      } else if (reveal && oi === picked) {
+        const tag = document.createElement('span');
+        tag.className = 'option-tag incorrect-tag';
+        tag.textContent = '✗ your answer';
+        label.appendChild(tag);
+      }
+
+      const strikeBtn = document.createElement('button');
+      strikeBtn.type = 'button';
+      strikeBtn.className = 'strike-btn' + (strikes[q.id].has(oi) ? ' on' : '');
+      strikeBtn.textContent = 'abc';
+      strikeBtn.title = 'Strike out this option';
+      strikeBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (strikes[q.id].has(oi)) strikes[q.id].delete(oi); else strikes[q.id].add(oi);
+        renderQuestion();
+      };
+
+      row.appendChild(radio);
+      row.appendChild(label);
+      row.appendChild(strikeBtn);
+      wrap.appendChild(row);
+    });
+
+    const explainBox = document.getElementById('explainBox');
+    if (reveal) {
+      explainBox.classList.remove('hidden');
+      explainBox.innerHTML = '<b>' + (picked === q.answer ? 'Correct. ' : 'Incorrect. ') + '</b>' + escapeHtml(q.explanation);
+    } else {
+      explainBox.classList.add('hidden');
+    }
+
+    document.getElementById('flagBtn').classList.toggle('on', !!flags[q.id]);
+    document.getElementById('commentCheck').checked = !!comments[q.id];
+    document.getElementById('commentBtn').classList.toggle('on', !!comments[q.id]);
+    document.getElementById('prevBtn').disabled = current === 0;
+    document.getElementById('nextBtn').textContent = current === session.length - 1 ? 'Review & Finish' : 'Next →';
+
+    renderNavGrid();
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function selectOption(oi){
+    const q = session[current];
+    if (mode === 'practice' && answers[q.id] !== undefined) return; // locked after reveal
+    answers[q.id] = oi;
+    renderQuestion();
+  }
+
+  function renderNavGrid(){
+    const grid = document.getElementById('navGrid');
+    grid.innerHTML = '';
+    session.forEach((q, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'navdot';
+      if (i === current) dot.classList.add('current');
+      if (answers[q.id] !== undefined) dot.classList.add('answered');
+      if (flags[q.id]) dot.classList.add('flagged');
+      dot.textContent = i + 1;
+      dot.onclick = () => { current = i; renderQuestion(); };
+      grid.appendChild(dot);
+    });
+  }
+
+  document.getElementById('prevBtn').onclick = () => { if (current > 0) { current--; renderQuestion(); } };
+  document.getElementById('nextBtn').onclick = () => {
+    if (current < session.length - 1) { current++; renderQuestion(); }
+    else { openConfirm(); }
+  };
+
+  document.getElementById('flagBtn').onclick = () => {
+    const q = session[current];
+    flags[q.id] = !flags[q.id];
+    renderQuestion();
+  };
+
+  // ---------- Comment popover ----------
+  const commentPop = document.getElementById('commentPopover');
+  document.getElementById('commentBtn').onclick = () => {
+    const q = session[current];
+    document.getElementById('commentText').value = comments[q.id] || '';
+    commentPop.classList.remove('hidden');
+  };
+  document.getElementById('commentCancel').onclick = () => commentPop.classList.add('hidden');
+  document.getElementById('commentSave').onclick = () => {
+    const q = session[current];
+    const val = document.getElementById('commentText').value.trim();
+    if (val) comments[q.id] = val; else delete comments[q.id];
+    commentPop.classList.add('hidden');
+    renderQuestion();
+  };
+
+  // ---------- Finish flow ----------
+  function openConfirm(){
+    const answered = Object.keys(answers).length;
+    document.getElementById('confirmText').textContent =
+      answered + ' of ' + session.length + ' answered' +
+      (answered < session.length ? '. Unanswered questions will be scored as incorrect.' : '. You can review your full breakdown after submitting.');
+    document.getElementById('confirmModal').style.display = 'flex';
+  }
+  document.getElementById('confirmCancel').onclick = () => { document.getElementById('confirmModal').style.display = 'none'; };
+  document.getElementById('confirmSubmit').onclick = () => { document.getElementById('confirmModal').style.display = 'none'; finishSession(false); };
+
+  function finishSession(){
+    if (attemptSaved) return;
+    attemptSaved = true;
+    if (timerHandle) clearInterval(timerHandle);
+    document.getElementById('session').classList.add('hidden');
+    renderResults();
+    document.getElementById('resultsScreen').style.display = 'block';
+    saveAttempt();
+  }
+
+  async function saveAttempt(){
+    const attempt = {
+      mode,
+      total_questions: session.length,
+      answered_questions: Object.keys(answers).length,
+      correct_answers: session.filter(q => answers[q.id] === q.answer).length,
+      started_at: new Date(startedAt).toISOString(),
+      completed_at: new Date().toISOString()
+    };
+    const attempts = localAttempts();
+    attempts.push(attempt);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(attempts));
+    await refreshProgress();
+    if (!cloudUser) return;
+    const { error } = await cloud.from('exam_attempts').insert({ ...attempt, user_id: cloudUser.id });
+    document.getElementById('syncStatus').textContent = error
+      ? 'Cloud sync failed; this attempt is saved on this device'
+      : 'Synced for ' + cloudUser.email;
+    if (!error) refreshProgress();
+  }
+
+  function renderResults(){
+    let correct = 0;
+    const domainStats = {};
+    session.forEach(q => {
+      if (!domainStats[q.domain]) domainStats[q.domain] = { total: 0, correct: 0 };
+      domainStats[q.domain].total++;
+      if (answers[q.id] === q.answer) { correct++; domainStats[q.domain].correct++; }
+    });
+    const pct = session.length ? correct / session.length : 0;
+    const pass = pct >= PASS_THRESHOLD;
+
+    const ring = document.getElementById('scoreRing');
+    ring.textContent = Math.round(pct * 100) + '%';
+    ring.className = 'score-ring ' + (pass ? 'pass' : 'fail');
+
+    const pill = document.getElementById('gradePill');
+    pill.textContent = pass ? 'PASS' : 'FAIL';
+    pill.className = 'grade-pill ' + (pass ? 'pass' : 'fail');
+
+    document.getElementById('scoreHeadline').textContent =
+      correct + ' / ' + session.length + ' correct (passing score: ' + Math.round(PASS_THRESHOLD*100) + '%)';
+    document.getElementById('scoreSummary').textContent =
+      'Session mode: ' + (mode === 'exam' ? 'Exam' : 'Practice') + ' · Completed ' + new Date().toLocaleString();
+
+    const tbl = document.getElementById('domainTable');
+    let html = '<tr><th>Objective area</th><th>Score</th><th style="width:40%">Accuracy</th><th></th></tr>';
+    Object.keys(domainStats).sort((a,b) => (domainStats[a].correct/domainStats[a].total) - (domainStats[b].correct/domainStats[b].total)).forEach(d => {
+      const st = domainStats[d];
+      const dpct = st.total ? st.correct / st.total : 0;
+      const weak = dpct < PASS_THRESHOLD;
+      html += '<tr><td>' + escapeHtml(d) + '</td><td>' + st.correct + '/' + st.total + '</td>' +
+        '<td><div class="bar-track"><div class="bar-fill ' + (weak ? 'weak' : 'good') + '" style="width:' + Math.round(dpct*100) + '%"></div></div></td>' +
+        '<td>' + (weak ? '<span class="weak-note">NEEDS REVIEW</span>' : '<span class="strong-note">STRONG</span>') + '</td></tr>';
+    });
+    tbl.innerHTML = html;
+
+    const flaggedIds = session.filter(q => flags[q.id] || comments[q.id]);
+    const flagWrap = document.getElementById('flaggedList');
+    flagWrap.innerHTML = flaggedIds.length ? '' : '<p style="color:var(--muted);font-size:13.5px">None flagged or commented.</p>';
+    flaggedIds.forEach(q => {
+      const div = document.createElement('div');
+      div.className = 'review-item';
+      const idx = session.indexOf(q) + 1;
+      div.innerHTML = '<div class="rmeta"><span>Q' + idx + '</span><span>' + escapeHtml(q.domain) + '</span>' +
+        (flags[q.id] ? '<span style="color:var(--flag)">flagged</span>' : '') + '</div>' +
+        '<div>' + escapeHtml(q.prompt) + '</div>' +
+        (comments[q.id] ? '<div class="rcomment">' + escapeHtml(comments[q.id]) + '</div>' : '');
+      flagWrap.appendChild(div);
+    });
+
+    const reviewWrap = document.getElementById('reviewList');
+    reviewWrap.innerHTML = '';
+    session.forEach((q, i) => {
+      const picked = answers[q.id];
+      const isCorrect = picked === q.answer;
+      const div = document.createElement('div');
+      div.className = 'review-item';
+      div.innerHTML =
+        '<div class="rmeta"><span>Q' + (i+1) + '</span><span>' + escapeHtml(q.domain) + '</span>' +
+        '<span style="color:' + (isCorrect ? 'var(--correct)' : 'var(--wrong)') + '">' + (isCorrect ? '✓ correct' : (picked===undefined ? '— unanswered' : '✗ incorrect')) + '</span></div>' +
+        '<div style="margin-bottom:8px">' + escapeHtml(q.prompt) + '</div>' +
+        '<div style="font-size:13px;color:var(--muted)">Your answer: <b style="color:var(--text)">' + (picked!==undefined ? escapeHtml(q.options[picked]) : '(none)') + '</b></div>' +
+        '<div style="font-size:13px;color:var(--muted)">Correct answer: <b style="color:var(--correct)">' + escapeHtml(q.options[q.answer]) + '</b></div>' +
+        '<div class="explain-box" style="margin-top:8px">' + escapeHtml(q.explanation) + '</div>';
+      reviewWrap.appendChild(div);
+    });
+  }
+
+  document.getElementById('retakeBtn').onclick = () => {
+    document.getElementById('resultsScreen').style.display = 'none';
+    document.getElementById('landing').classList.remove('hidden');
+  };
+})();
+</script>
+</body>
+</html>
