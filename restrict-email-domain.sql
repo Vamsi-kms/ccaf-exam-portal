@@ -4,7 +4,7 @@ language plpgsql
 stable
 as $$
 begin
-  if lower(split_part(event->'user'->>'email', '@', 2)) = 'algorims.com' then
+  if lower(split_part(coalesce(nullif(event->'user'->>'email', ''), event->'user'->'user_metadata'->>'email'), '@', 2)) = 'algorims.com' then
     return '{}'::jsonb;
   end if;
 
