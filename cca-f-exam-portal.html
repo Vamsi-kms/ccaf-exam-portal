@@ -53,7 +53,7 @@
   .field-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
   .field { flex: 1; min-width: 180px; }
   .field label { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
-  select, input[type=number], input[type=email] { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 9px 10px; font-size: 14px; font-family: inherit; }
+  select, input[type=number] { width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 9px 10px; font-size: 14px; font-family: inherit; }
   .domain-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip { border: 1px solid var(--line); background: #fff; color: var(--muted); padding: 6px 12px; border-radius: 999px; font-size: 12.5px; }
   .chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); font-weight: 600; }
@@ -211,11 +211,9 @@
     </section>
     <section class="card auth-card" aria-labelledby="syncHeading">
       <h2 class="card-heading" id="syncHeading">Sign in to continue</h2>
-      <div id="syncStatus">Sign in to start and sync your progress</div>
+      <div id="syncStatus">Sign in with your Algorims Google account</div>
       <div class="auth-controls" id="authControls">
-        <label class="sr-only" for="authEmail">Algorims email address</label>
-        <input type="email" id="authEmail" autocomplete="email" placeholder="name@algorims.com" required>
-        <button class="nav-btn primary" id="signInBtn" type="button">Send sign-in link</button>
+        <button class="nav-btn primary" id="signInBtn" type="button">Sign in with Google</button>
         <button class="nav-btn hidden" id="signOutBtn" type="button">Sign out</button>
       </div>
     </section>
@@ -404,7 +402,7 @@
   async function refreshProgress(){
     let attempts = localAttempts();
     let tests = attempts.length;
-    let label = cloud ? 'Sign in to start and sync progress across devices' : 'Sign-in is unavailable';
+    let label = cloud ? 'Sign in with your Algorims Google account' : 'Sign-in is unavailable';
     if (cloudUser) {
       const { data, count, error } = await cloud.from('exam_attempts')
         .select('answered_questions', { count: 'exact' });
@@ -419,7 +417,6 @@
     document.getElementById('testsTaken').textContent = tests;
     document.getElementById('questionsAttempted').textContent = attempts.reduce((sum, item) => sum + Number(item.answered_questions || 0), 0);
     document.getElementById('syncStatus').textContent = label;
-    document.getElementById('authEmail').classList.toggle('hidden', !!cloudUser);
     document.getElementById('signInBtn').classList.toggle('hidden', !!cloudUser);
     document.getElementById('signOutBtn').classList.toggle('hidden', !cloudUser);
   }
@@ -429,23 +426,21 @@
       document.getElementById('syncStatus').textContent = 'Add Supabase settings in cca-f-config.js to enable accounts';
       return;
     }
-    const emailInput = document.getElementById('authEmail');
-    const email = emailInput.value.trim();
-    if (!emailInput.checkValidity() || !email) return emailInput.reportValidity();
-    if (!isAllowedEmail(email)) {
-      document.getElementById('syncStatus').textContent = 'Use your @algorims.com email address';
-      return emailInput.focus();
-    }
     const signInBtn = document.getElementById('signInBtn');
     signInBtn.disabled = true;
-    signInBtn.textContent = 'Sending…';
-    const { error } = await cloud.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: location.origin + location.pathname }
+    signInBtn.textContent = 'Redirecting…';
+    const { error } = await cloud.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: location.origin + location.pathname,
+        queryParams: { hd: 'algorims.com' }
+      }
     });
-    document.getElementById('syncStatus').textContent = error ? error.message : 'Check your email for the sign-in link';
-    signInBtn.disabled = false;
-    signInBtn.textContent = 'Send sign-in link';
+    if (error) {
+      document.getElementById('syncStatus').textContent = error.message;
+      signInBtn.disabled = false;
+      signInBtn.textContent = 'Sign in with Google';
+    }
   };
   document.getElementById('signOutBtn').onclick = () => cloud && cloud.auth.signOut();
 
@@ -529,8 +524,8 @@
 
   document.getElementById('startBtn').onclick = () => {
     if (!cloudUser) {
-      document.getElementById('syncStatus').textContent = cloud ? 'Sign in with your @algorims.com email to start' : 'Sign-in is unavailable';
-      document.getElementById('authEmail').focus();
+      document.getElementById('syncStatus').textContent = cloud ? 'Sign in with your Algorims Google account to start' : 'Sign-in is unavailable';
+      document.getElementById('signInBtn').focus();
       return;
     }
     const countVal = document.getElementById('qCount').value;
