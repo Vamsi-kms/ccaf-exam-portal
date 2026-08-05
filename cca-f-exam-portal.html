@@ -512,6 +512,19 @@
     document.getElementById('startBtn').textContent = 'Start Exam';
   };
 
+  function shuffleOptions(question){
+    const options = question.options.map((text, index) => ({ text, correct: index === question.answer }));
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+    return {
+      ...question,
+      options: options.map(option => option.text),
+      answer: options.findIndex(option => option.correct)
+    };
+  }
+
   function buildEqualScenarioSession(requestedCount){
     const count = Math.min(requestedCount, balancedPoolSize());
     const each = Math.floor(count / SESSION_SCENARIOS.length);
@@ -519,6 +532,7 @@
     return SESSION_SCENARIOS.flatMap((scenario, index) =>
       BANK.filter(q => q.scenario === scenario && selectedDomains.has(q.domain))
         .slice(0, each + (index < remainder ? 1 : 0))
+        .map(shuffleOptions)
     );
   }
 
