@@ -60,11 +60,13 @@
   .start-btn { width: 100%; padding: 13px; border: none; border-radius: 9px; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; margin-top: 4px; }
   .start-btn:disabled { opacity: .35; cursor: not-allowed; }
   .bank-stat { font-size: 12px; color: var(--muted); margin-top: 14px; }
-  .progress-card { display: grid; grid-template-columns: auto minmax(330px, 1fr); align-items: center; gap: 28px; margin-bottom: 18px; }
+  .progress-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 14px; margin-bottom: 18px; }
+  .progress-card, .auth-card { padding: 20px 24px; }
+  .card-heading { font-size: 13px; margin: 0 0 12px; }
   .progress-stats { display: flex; gap: 24px; }
   .progress-stat strong { display: block; font-size: 22px; }
   .progress-stat span, #syncStatus { color: var(--muted); font-size: 12px; }
-  #syncStatus { margin-top: 3px; }
+  #syncStatus { min-height: 18px; margin: -7px 0 8px; }
   .auth-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
   .auth-controls .nav-btn { min-height: 40px; white-space: nowrap; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
@@ -73,7 +75,7 @@
     #landing { padding: 28px 16px 64px; }
     h1 { font-size: 26px; }
     .card { padding: 20px; }
-    .progress-card { grid-template-columns: 1fr; gap: 18px; }
+    .progress-grid { grid-template-columns: 1fr; }
     .auth-controls { grid-template-columns: 1fr; }
     .auth-controls .nav-btn { width: 100%; }
   }
@@ -199,20 +201,24 @@
   <h1>CCA-F Practice Portal</h1>
   <p class="lead">Practice or simulate the CCAR-F exam. Practice Mode reveals answers as you go; Exam Mode withholds results until you finish, then breaks your score down by objective area.</p>
 
-  <div class="card progress-card">
-    <div>
+  <div class="progress-grid">
+    <section class="card progress-card" aria-labelledby="progressHeading">
+      <h2 class="card-heading" id="progressHeading">Your progress</h2>
       <div class="progress-stats">
         <div class="progress-stat"><strong id="testsTaken">0</strong><span>tests completed</span></div>
         <div class="progress-stat"><strong id="questionsAttempted">0</strong><span>questions answered</span></div>
       </div>
+    </section>
+    <section class="card auth-card" aria-labelledby="syncHeading">
+      <h2 class="card-heading" id="syncHeading">Sync progress</h2>
       <div id="syncStatus">Saved on this device</div>
-    </div>
-    <div class="auth-controls" id="authControls">
-      <label class="sr-only" for="authEmail">Algorims email address</label>
-      <input type="email" id="authEmail" autocomplete="email" placeholder="name@algorims.com" required>
-      <button class="nav-btn primary" id="signInBtn" type="button">Send sign-in link</button>
-      <button class="nav-btn hidden" id="signOutBtn" type="button">Sign out</button>
-    </div>
+      <div class="auth-controls" id="authControls">
+        <label class="sr-only" for="authEmail">Algorims email address</label>
+        <input type="email" id="authEmail" autocomplete="email" placeholder="name@algorims.com" required>
+        <button class="nav-btn primary" id="signInBtn" type="button">Send sign-in link</button>
+        <button class="nav-btn hidden" id="signOutBtn" type="button">Sign out</button>
+      </div>
+    </section>
   </div>
 
   <div class="card">
