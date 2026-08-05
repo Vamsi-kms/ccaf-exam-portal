@@ -239,16 +239,15 @@
           <option value="20">20 questions</option>
           <option value="40">40 questions</option>
           <option value="60" selected>60 questions (4 scenarios × 15)</option>
-          <option value="90">90 questions</option>
-          <option value="all">All balanced questions</option>
         </select>
       </div>
       <div class="field">
         <label>Time limit (exam mode)</label>
         <select id="qTime">
           <option value="30">30 minutes</option>
-          <option value="60" selected>60 minutes</option>
+          <option value="60">60 minutes</option>
           <option value="90">90 minutes</option>
+          <option value="120" selected>120 minutes (official format)</option>
           <option value="0">No limit</option>
         </select>
       </div>
@@ -257,7 +256,7 @@
     <div class="field" style="margin-bottom:20px">
       <label>Domain distribution</label>
       <select disabled>
-        <option>Equal across Scenarios 1–4 (sequential)</option>
+        <option>Official blueprint weightage across 4 randomly selected scenarios</option>
       </select>
     </div>
 
@@ -369,9 +368,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.0/dist/umd/supabase.min.js"></script>
 <script src="cca-f-config.js"></script>
 <script src="cca-f-portal-data.js"></script>
+<script src="cca-f-curated-data.js"></script>
+<script src="cca-f-pool-picker.js"></script>
 <script>
 (function(){
-  const BANK = window.CCAF_QUESTION_BANK || [];
+  const CURATED_BANK = window.CCAF_CURATED_BANK || [];
+  let BANK = CURATED_BANK;
+  let seenQuestionIds = new Set();
+  let hasPriorAttempt = false;
   const DOMAINS = window.CCAF_DOMAINS || [];
   const PASS_THRESHOLD = window.CCAF_PASS_THRESHOLD || 0.72;
   const letters = ['A','B','C','D'];
@@ -383,7 +387,8 @@
     s5: ['Scenario 5 · Claude Code for Continuous Integration', 'CI and pull-request automation with Claude Code for reviews, test generation, and developer feedback. The questions here emphasize non-interactive execution, prompt calibration, false-positive control, and unbiased review architecture.'],
     s6: ['Scenario 6 · Structured Data Extraction', 'Production-grade document extraction with structured output, schema validation, retry loops, and downstream integration. The focus is on reliable tool_use output, graceful handling of missing data, and validation design.']
   };
-  const SESSION_SCENARIOS = ['s1','s2','s3','s4'];
+  const ALL_SCENARIOS = Object.keys(SCENARIOS);
+  let sessionScenarios = ALL_SCENARIOS.slice(0, 4);
   const STORAGE_KEY = 'ccaf-attempts-v1';
   const cloudConfig = window.CCAF_SUPABASE || {};
   const cloud = cloudConfig.url && cloudConfig.publishableKey && window.supabase
@@ -411,13 +416,17 @@
     if (cloudUser) {
       const identityEmail = profileEmail(cloudUser).toLowerCase();
       const result = await cloud.from('exam_attempts')
-        .select('answered_questions', { count: 'exact' })
+        .select('answered_questions, question_ids', { count: 'exact' })
         .eq('identity_email', identityEmail);
       if (!result.error) {
         const { data, count } = result;
         attempts = data || [];
         tests = count || 0;
         label = 'Progress saved for ' + profileEmail(cloudUser);
+        hasPriorAttempt = tests > 0;
+        seenQuestionIds = new Set(attempts.flatMap(item => item.question_ids || []));
+        BANK = hasPriorAttempt ? window.CCAF_buildPoolSession(seenQuestionIds) : CURATED_BANK;
+        updateBankStat();
       } else {
         label = 'Progress identity unavailable; finish the Supabase setup';
       }
@@ -489,12 +498,12 @@
   });
 
   function balancedPoolSize(){
-    return Math.min(...SESSION_SCENARIOS.map(scenario =>
+    return Math.min(...ALL_SCENARIOS.map(scenario =>
       BANK.filter(q => q.scenario === scenario && selectedDomains.has(q.domain)).length
-    )) * SESSION_SCENARIOS.length;
+    )) * 4;
   }
   function updateBankStat(){
-    document.getElementById('bankStat').textContent = balancedPoolSize() + ' balanced questions available across Scenarios 1–4 and ' + selectedDomains.size + ' objective areas.';
+    document.getElementById('bankStat').textContent = balancedPoolSize() + ' questions per exam: 4 randomly selected scenarios × 15 questions, across ' + selectedDomains.size + ' objective areas.';
     document.getElementById('startBtn').disabled = balancedPoolSize() === 0;
   }
   updateBankStat();
@@ -512,12 +521,16 @@
     document.getElementById('startBtn').textContent = 'Start Exam';
   };
 
-  function shuffleOptions(question){
-    const options = question.options.map((text, index) => ({ text, correct: index === question.answer }));
-    for (let i = options.length - 1; i > 0; i--) {
+  function shuffle(items){
+    for (let i = items.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [options[i], options[j]] = [options[j], options[i]];
+      [items[i], items[j]] = [items[j], items[i]];
     }
+    return items;
+  }
+
+  function shuffleOptions(question){
+    const options = shuffle(question.options.map((text, index) => ({ text, correct: index === question.answer })));
     return {
       ...question,
       options: options.map(option => option.text),
@@ -527,9 +540,9 @@
 
   function buildEqualScenarioSession(requestedCount){
     const count = Math.min(requestedCount, balancedPoolSize());
-    const each = Math.floor(count / SESSION_SCENARIOS.length);
-    const remainder = count % SESSION_SCENARIOS.length;
-    return SESSION_SCENARIOS.flatMap((scenario, index) =>
+    const each = Math.floor(count / sessionScenarios.length);
+    const remainder = count % sessionScenarios.length;
+    return sessionScenarios.flatMap((scenario, index) =>
       BANK.filter(q => q.scenario === scenario && selectedDomains.has(q.domain))
         .slice(0, each + (index < remainder ? 1 : 0))
         .map(shuffleOptions)
@@ -557,6 +570,7 @@
     }
     const countVal = document.getElementById('qCount').value;
     const count = countVal === 'all' ? balancedPoolSize() : parseInt(countVal, 10);
+    sessionScenarios = shuffle([...ALL_SCENARIOS]).slice(0, 4);
     session = buildEqualScenarioSession(count);
     answers = {}; flags = {}; comments = {}; strikes = {}; current = 0;
     startedAt = Date.now();
@@ -765,7 +779,8 @@
       answered_questions: Object.keys(answers).length,
       correct_answers: session.filter(q => answers[q.id] === q.answer).length,
       started_at: new Date(startedAt).toISOString(),
-      completed_at: new Date().toISOString()
+      completed_at: new Date().toISOString(),
+      question_ids: session.map(q => q.id)
     };
     const attempts = localAttempts();
     attempts.push(attempt);
