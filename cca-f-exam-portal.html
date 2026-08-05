@@ -244,10 +244,7 @@
       <div class="field">
         <label>Time limit (exam mode)</label>
         <select id="qTime">
-          <option value="30">30 minutes</option>
-          <option value="60">60 minutes</option>
-          <option value="90">90 minutes</option>
-          <option value="120" selected>120 minutes (official format)</option>
+          <option value="auto" selected>Auto (2 min/question)</option>
           <option value="0">No limit</option>
         </select>
       </div>
@@ -576,7 +573,8 @@
     startedAt = Date.now();
     attemptSaved = false;
 
-    const mins = parseInt(document.getElementById('qTime').value, 10);
+    const timeVal = document.getElementById('qTime').value;
+    const mins = timeVal === 'auto' ? count * 2 : parseInt(timeVal, 10);
     timeLeftSec = mins > 0 ? mins * 60 : 0;
 
     document.getElementById('landing').classList.add('hidden');
