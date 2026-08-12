@@ -18,32 +18,30 @@
 
   function buildPoolSession(seenIds) {
     const seen = seenIds instanceof Set ? seenIds : new Set(seenIds || []);
-    const usedThisSession = new Set();
     const byDomain = new Map(DOMAINS.map(domain => [
       domain,
-      shuffle(RAW_BANK.filter(q => q.domain === domain))
+      RAW_BANK.filter(q => q.domain === domain)
     ]));
+    const session = [];
 
-    function takeForSlot(domain, scenario) {
+    DOMAINS.forEach((domain, index) => {
       const pool = byDomain.get(domain) || [];
-      let pick = pool.find(q => !usedThisSession.has(q.id) && !seen.has(q.id));
-      if (!pick) pick = pool.find(q => !usedThisSession.has(q.id)); // seen but not repeated this session
-      if (!pick) return null;
-      usedThisSession.add(pick.id);
-      return { ...pick, scenario, domain };
-    }
+      const candidates = [
+        pool.filter(q => q.priority && !seen.has(q.id)),
+        pool.filter(q => !q.priority && !seen.has(q.id)),
+        pool.filter(q => q.priority && seen.has(q.id)),
+        pool.filter(q => !q.priority && seen.has(q.id))
+      ].flatMap(shuffle);
+      const slots = Array.from(
+        { length: BLUEPRINT_COUNTS[index] * SCENARIO_IDS.length },
+        (_, slot) => SCENARIO_IDS[(slot + index) % SCENARIO_IDS.length]
+      );
+      slots.forEach((scenario, slot) => {
+        if (candidates[slot]) session.push({ ...candidates[slot], scenario, domain });
+      });
+    });
 
-    return SCENARIO_IDS.flatMap(scenario =>
-      DOMAINS.flatMap((domain, index) => {
-        const count = BLUEPRINT_COUNTS[index];
-        const picks = [];
-        for (let i = 0; i < count; i++) {
-          const pick = takeForSlot(domain, scenario);
-          if (pick) picks.push(pick);
-        }
-        return picks;
-      })
-    );
+    return session;
   }
 
   window.CCAF_buildPoolSession = buildPoolSession;

@@ -370,7 +370,7 @@
 <script>
 (function(){
   const CURATED_BANK = window.CCAF_CURATED_BANK || [];
-  let BANK = CURATED_BANK;
+  let BANK = window.CCAF_buildPoolSession(new Set());
   let seenQuestionIds = new Set();
   let hasPriorAttempt = false;
   const DOMAINS = window.CCAF_DOMAINS || [];
@@ -422,7 +422,7 @@
         label = 'Progress saved for ' + profileEmail(cloudUser);
         hasPriorAttempt = tests > 0;
         seenQuestionIds = new Set(attempts.flatMap(item => item.question_ids || []));
-        BANK = hasPriorAttempt ? window.CCAF_buildPoolSession(seenQuestionIds) : CURATED_BANK;
+        BANK = window.CCAF_buildPoolSession(seenQuestionIds);
         updateBankStat();
       } else {
         label = 'Progress identity unavailable; finish the Supabase setup';
