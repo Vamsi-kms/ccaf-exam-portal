@@ -26,13 +26,21 @@ questions.forEach(question => {
 
 const priorityQuestions = sandbox.window.CCAF_QUESTION_BANK.filter(question => question.priority);
 const freshPool = sandbox.window.CCAF_buildPoolSession(new Set());
+assert.equal(sandbox.window.CCAF_QUESTION_BANK.length, 947);
+assert.equal(new Set(sandbox.window.CCAF_QUESTION_BANK.map(question => question.id)).size, 947);
 assert.equal(priorityQuestions.length, 60);
 assert.equal(new Set(priorityQuestions.map(question => question.id)).size, 60);
 assert.equal(freshPool.length, 90);
 assert.equal(freshPool.filter(question => question.priority).length, 60);
 priorityQuestions.forEach(question => {
+  assert.ok(scenarios.includes(question.scenario), question.id);
+  assert.ok(domains.includes(question.domain), question.id);
+  assert.ok(question.prompt.trim(), question.id);
   assert.equal(question.options.length, 4, question.id);
+  question.options.forEach(option => assert.ok(option.trim(), question.id));
   assert.ok(question.answer >= 0 && question.answer < 4, question.id);
+  assert.ok(question.explanation.trim(), question.id);
+  assert.ok(!question.options.some(option => option.includes('This architectural pattern ensures')), question.id);
 });
 
 console.log('Question bank checks passed.');
